@@ -124,7 +124,8 @@ def sync_series(conn, session, brand, series, *, max_pages=3, full_history=False
                     known_on_page += 1
                 url = source_url(item.get("showId"))
                 sections = {}
-                if (not old or full_history) and detailed < detail_limit and url:
+                needs_detail = not old or (full_history and not json.loads(old["sections_json"]))
+                if needs_detail and detailed < detail_limit and url:
                     try:
                         time.sleep(interval)
                         sections = fetch_sections(session, url)

@@ -2,8 +2,9 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
-from auto_voice_monitor.collector import normalize, source_url, upsert, valid_source_url
+from auto_voice_monitor.collector import normalize, source_url, sync_series, upsert, valid_source_url
 from auto_voice_monitor.db import connect
 from auto_voice_monitor.report import generate_report, screen
 
@@ -52,6 +53,21 @@ class PipelineTests(unittest.TestCase):
     def test_no_cadence_false_positive(self):
         hits = screen({"review_text": "2026款天工08车机丝滑流畅，没有任何卡顿，双屏独立系统很方便。"})
         self.assertFalse(any(sentiment == "issue" for _, _, sentiment, _ in hits))
+
+    def test_history_detail_backfill_skips_already_enriched_rows(self):
+        items = [
+            {"Koubeiid": 1, "showId": "abc", "contents": [{"content": "车机操作流畅，语音控制方便。"}]},
+            {"Koubeiid": 2, "showId": "def", "contents": [{"content": "香氛不能通过语音控制。"}]},
+        ]
+        upsert(self.conn, normalize(items[0], BRAND, SERIES, {"intelligence": "车机操作流畅"}))
+        upsert(self.conn, normalize(items[1], BRAND, SERIES, {}))
+        with patch("auto_voice_monitor.collector.fetch_page", return_value={"list": items, "pagecount": 1}), \
+             patch("auto_voice_monitor.collector.fetch_sections", return_value={"intelligence": "香氛不能通过语音控制"}) as fetch, \
+             patch("auto_voice_monitor.collector.time.sleep"):
+            result = sync_series(self.conn, object(), BRAND, SERIES, max_pages=1, full_history=True, detail_limit=1)
+        self.assertEqual(fetch.call_count, 1)
+        self.assertEqual(result["changed"], 1)
+        self.assertEqual(self.conn.execute("select count(*) from reviews where sections_json != '{}' ").fetchone()[0], 2)
 
 if __name__ == "__main__":
     unittest.main()
