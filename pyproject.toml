@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "auto-voice-monitor"
+version = "0.1.0"
+description = "Self-hosted automotive owner-review voice-of-customer monitor"
+requires-python = ">=3.10"
+dependencies = ["requests>=2.31,<3", "beautifulsoup4>=4.12,<5"]
+
+[project.scripts]
+auto-voice = "auto_voice_monitor.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]

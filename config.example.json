@@ -1,0 +1,15 @@
+{
+  "timezone": "Asia/Shanghai",
+  "database": "data/reviews.sqlite",
+  "reports_dir": "reports",
+  "request_interval_seconds": 1.5,
+  "brands": [
+    {
+      "id": "hongqi",
+      "name": "红旗",
+      "series": [
+        {"id": 6913, "name": "红旗天工08"}
+      ]
+    }
+  ]
+}
